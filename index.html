@@ -2260,7 +2260,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE device_bans;
           <span class="sep-text">أو</span>
           <span class="sep-line"></span>
         </div>
-        <button class="btn-guest-login" onclick="loginAnonymously()">دخول كزائر</button>
+        <button class="btn-guest-login" onclick="(async () => { try { await loginAnonymously(); } catch(e) { console.error(e); showToast('❌ خطأ في الدخول', 'error'); } })()">دخول كزائر</button>
       </div>
 
       <!-- Register Form -->
@@ -5319,25 +5319,51 @@ async function login() {
 async function loginAnonymously() {
   showLoading(true);
   let success = false;
+  let errorMsg = '';
   try {
     if (!supabase) throw new Error('Supabase not initialized');
     const { data, error } = await supabase.auth.signInAnonymously();
-    if (!error && data && data.user) {
+    if (error) {
+      errorMsg = error.message;
+      throw error;
+    }
+    if (data && data.user) {
       const randomName = 'زائر_' + Math.floor(Math.random() * 10000);
       await supabase.auth.updateUser({ data: { nickname: randomName, color: '#3fb950', status: 'متصل', gender: 'male', age: 20, role: 'user' } });
       await loadUser(data.user);
-      showChat();
+      await showChat();
       showToast('🔒 دخلت كزائر: ' + randomName, 'info');
       success = true;
     }
-  } catch (err) {}
+  } catch (err) {
+    errorMsg = err.message || 'Unknown error';
+    console.error('Login error:', err);
+  }
 
   if (!success) {
-    currentUser = { id: 'demo-' + Date.now(), nickname: 'زائر_' + Math.floor(Math.random() * 10000), color: '#3fb950', status: 'متصل', email: null, gender: 'male', age: 20, role: 'user', canCall: false, canVoice: false, subscription: 'free' };
+    // Demo mode fallback
+    currentUser = { 
+      id: 'demo-' + Date.now(), 
+      nickname: 'زائر_' + Math.floor(Math.random() * 10000), 
+      color: '#3fb950', 
+      status: 'متصل', 
+      email: null, 
+      gender: 'male', 
+      age: 20, 
+      role: 'user', 
+      canCall: false, 
+      canVoice: false, 
+      subscription: 'free' 
+    };
     currentUserColor = '#3fb950';
     showLoading(false);
-    showChat();
-    showToast('🎮 وضع عرض تجريبي (بدون Supabase)', 'info');
+    try {
+      await showChat();
+      showToast('🎮 وضع عرض تجريبي (بدون Supabase)', 'info');
+    } catch (e) {
+      console.error('Demo mode error:', e);
+      showToast('❌ حدث خطأ في الدخول', 'error');
+    }
     return;
   }
   showLoading(false);
