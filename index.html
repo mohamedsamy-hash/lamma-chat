@@ -2260,7 +2260,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE device_bans;
           <span class="sep-text">أو</span>
           <span class="sep-line"></span>
         </div>
-        <button class="btn-guest-login" onclick="(async () => { try { await loginAnonymously(); } catch(e) { console.error(e); showToast('❌ خطأ في الدخول', 'error'); } })()">دخول كزائر</button>
+        <button class="btn-guest-login" onclick="loginAnonymously()">دخول كزائر</button>
       </div>
 
       <!-- Register Form -->
@@ -3943,11 +3943,11 @@ function cmdWarnings(args) {
   if (warnings.length === 0) return '✅ لا توجد إنذارات لـ ' + target;
     let result = '📊 إحصائيات لمّة شات:\n';
   ...
-} = '📋 إنذارات ' + target + ':
+} = '📋 إنذارات ' + target + `:
 ';
   warnings.forEach((w, i) => {
-    result += (i+1) + '. ' + w.reason + ' (بواسطة ' + w.by + ' — ' + w.time + ')
-';
+    result += `${i+1}. ${w.reason} (بواسطة ${w.by} — ${w.time})
+`;
   });
   return result;
 }
@@ -4007,30 +4007,31 @@ function cmdHelp(args) {
 
 function cmdCommands(args) {
   const myRole = currentUser?.role || 'user';
-  let result = `📋 الأوامر المتاحة لـ ' + myRole + ':
+  let result = '📋 الأوامر المتاحة لـ ' + myRole + ':
 
-`;
+';
 
   // Feature status
-  result += `⚙️ حالة المميزات:
-`;
-  result += (featureGifts ? `✅' : '❌') + ' الهدايا (/gift)
-`;
-  result += (featureGames ? `✅' : '❌') + ' الألعاب (/roll, /challenge)
-`;
-  result += (featureAchievements ? `✅' : '❌') + ' الإنجازات (/achievements)
-`;
-  result += (featureBot ? `✅' : '❌') + ' البوت (/bot)
-`;
-  result += (featurePolls ? `✅' : '❌') + ' التصويت (/poll)
-`;
+  result += '⚙️ حالة المميزات:
+';
+  result += (featureGifts ? '✅' : '❌') + ' الهدايا (/gift)
+';
+  result += (featureGames ? '✅' : '❌') + ' الألعاب (/roll, /challenge)
+';
+  result += (featureAchievements ? '✅' : '❌') + ' الإنجازات (/achievements)
+';
+  result += (featureBot ? '✅' : '❌') + ' البوت (/bot)
+';
+  result += (featurePolls ? '✅' : '❌') + ' التصويت (/poll)
+';
   if (isOwner()) {
-    result += '👑 أوامر المالك:
-';
-    result += '/enable [feature] — تفعيل ميزة
-';
-    result += '/disable [feature] — تعطيل ميزة
-';
+    result += `
+👑 أوامر المالك:
+`;
+    result += `/enable [feature] — تفعيل ميزة
+`;
+    result += `/disable [feature] — تعطيل ميزة
+`;
   }
   result += `
 `;
@@ -5319,51 +5320,25 @@ async function login() {
 async function loginAnonymously() {
   showLoading(true);
   let success = false;
-  let errorMsg = '';
   try {
     if (!supabase) throw new Error('Supabase not initialized');
     const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      errorMsg = error.message;
-      throw error;
-    }
-    if (data && data.user) {
+    if (!error && data && data.user) {
       const randomName = 'زائر_' + Math.floor(Math.random() * 10000);
       await supabase.auth.updateUser({ data: { nickname: randomName, color: '#3fb950', status: 'متصل', gender: 'male', age: 20, role: 'user' } });
       await loadUser(data.user);
-      await showChat();
+      showChat();
       showToast('🔒 دخلت كزائر: ' + randomName, 'info');
       success = true;
     }
-  } catch (err) {
-    errorMsg = err.message || 'Unknown error';
-    console.error('Login error:', err);
-  }
+  } catch (err) {}
 
   if (!success) {
-    // Demo mode fallback
-    currentUser = { 
-      id: 'demo-' + Date.now(), 
-      nickname: 'زائر_' + Math.floor(Math.random() * 10000), 
-      color: '#3fb950', 
-      status: 'متصل', 
-      email: null, 
-      gender: 'male', 
-      age: 20, 
-      role: 'user', 
-      canCall: false, 
-      canVoice: false, 
-      subscription: 'free' 
-    };
+    currentUser = { id: 'demo-' + Date.now(), nickname: 'زائر_' + Math.floor(Math.random() * 10000), color: '#3fb950', status: 'متصل', email: null, gender: 'male', age: 20, role: 'user', canCall: false, canVoice: false, subscription: 'free' };
     currentUserColor = '#3fb950';
     showLoading(false);
-    try {
-      await showChat();
-      showToast('🎮 وضع عرض تجريبي (بدون Supabase)', 'info');
-    } catch (e) {
-      console.error('Demo mode error:', e);
-      showToast('❌ حدث خطأ في الدخول', 'error');
-    }
+    showChat();
+    showToast('🎮 وضع عرض تجريبي (بدون Supabase)', 'info');
     return;
   }
   showLoading(false);
@@ -7834,19 +7809,19 @@ function cmdGift(args) {
 function cmdGifts(args) {
   if (!featureGifts) return '⚠️ نظام الهدايا معطل. اطلب من المالك: /enable gifts';
 
-  let result = `🎁 قائمة الهدايا المتاحة:
+  let result = '🎁 قائمة الهدايا المتاحة:
 
-`;
+';
   Object.entries(giftTypes).forEach(([key, gift]) => {
     let restriction = '';
     if (gift.vip) restriction = ' [VIP فقط]';
     if (gift.admin) restriction = ' [إدارة فقط]';
-    result += gift.icon + ` ' + gift.name + ' (' + key + ')' + restriction + '
-`;
+    result += gift.icon + ' ' + gift.name + ' (' + key + ')' + restriction + '
+';
   });
-  result += `
+  result += '
 💡 الاستخدام: /gift [اسم] [نوع]
-مثال: /gift أحمد rose`;
+مثال: /gift أحمد rose';
   return result;
 }
 
@@ -7977,12 +7952,12 @@ function cmdTop(args) {
   let sorted = [];
   if (category === 'points') {
     sorted = Object.entries(userPoints).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    let result = `🏆 أفضل 10 مستخدمين (النقاط):
+    let result = '🏆 أفضل 10 مستخدمين (النقاط):
 
-`;
+';
     sorted.forEach((entry, i) => {
-      result += (i + 1) + `. ' + entry[0] + ' — ' + entry[1] + ' نقطة
-`;
+      result += (i + 1) + '. ' + entry[0] + ' — ' + entry[1] + ' نقطة
+';
     });
     return result;
   } else if (category === 'gifts') {
@@ -7991,12 +7966,12 @@ function cmdTop(args) {
       giftCounts[user] = Object.values(gifts).reduce((a, b) => a + b, 0);
     });
     sorted = Object.entries(giftCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    let result = `🎁 أكثر المستخدمين تلقياً للهدايا:
+    let result = '🎁 أكثر المستخدمين تلقياً للهدايا:
 
-`;
+';
     sorted.forEach((entry, i) => {
-      result += (i + 1) + `. ' + entry[0] + ' — ' + entry[1] + ' هدية
-`;
+      result += (i + 1) + '. ' + entry[0] + ' — ' + entry[1] + ' هدية
+';
     });
     return result;
   }
@@ -8067,37 +8042,37 @@ function cmdStats(args) {
   const totalUsers = fakeUsers.length + 1;
   const totalRooms = rooms.length;
   const totalMessages = messageIdCounter;
-  const onlineNow = totalUsers; // Simplified
+  const onlineNow = totalUsers;
 
-  let result = `📊 إحصائيات لمّة شات:
+  let result = '📊 إحصائيات لمّة شات:
 
-`;
-  result += `👥 المستخدمون المتصلون: ' + onlineNow + '
-`;
-  result += `🏠 عدد الغرف: ' + totalRooms + '
-`;
-  result += `💬 إجمالي الرسائل: ' + totalMessages + '
-`;
-  result += `🎁 الهدايا المرسلة: ' + giftHistory.length + '
-`;
-  result += `🏆 النقاط الموزعة: ' + Object.values(userPoints).reduce((a, b) => a + b, 0) + '
-`;
-  result += `📊 التصويتات النشطة: ' + (activePoll ? 1 : 0) + '
+';
+  result += '👥 المستخدمون المتصلون: ' + onlineNow + '
+';
+  result += '🏠 عدد الغرف: ' + totalRooms + '
+';
+  result += '💬 إجمالي الرسائل: ' + totalMessages + '
+';
+  result += '🎁 الهدايا المرسلة: ' + giftHistory.length + '
+';
+  result += '🏆 النقاط الموزعة: ' + Object.values(userPoints).reduce((a, b) => a + b, 0) + '
+';
+  result += '📊 التصويتات النشطة: ' + (activePoll ? 1 : 0) + '
 
-`;
+';
 
-  result += `⚙️ المميزات المفعلة:
-`;
-  result += (featureGifts ? `✅' : '❌') + ' الهدايا
-`;
-  result += (featureGames ? `✅' : '❌') + ' الألعاب
-`;
-  result += (featureAchievements ? `✅' : '❌') + ' الإنجازات
-`;
-  result += (featureBot ? `✅' : '❌') + ' البوت
-`;
-  result += (featurePolls ? `✅' : '❌') + ' التصويت
-`;
+  result += '⚙️ المميزات المفعلة:
+';
+  result += (featureGifts ? '✅' : '❌') + ' الهدايا
+';
+  result += (featureGames ? '✅' : '❌') + ' الألعاب
+';
+  result += (featureAchievements ? '✅' : '❌') + ' الإنجازات
+';
+  result += (featureBot ? '✅' : '❌') + ' البوت
+';
+  result += (featurePolls ? '✅' : '❌') + ' التصويت
+';
 
   return result;
 }
